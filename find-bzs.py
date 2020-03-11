@@ -288,10 +288,10 @@ def find_pr_for_sha(sha, project):
         # In this case, it was probably a bogus "cherry picked from" line.
         # This may be an accident when the developer cherry-picks from other
         # work-in-progress branches. Don't treat it as fatal for now.
-        print('warning: could not find merged PR for %s' % sha)
+        # print('warning: could not find merged PR for %s' % sha)
         return None
     if data['total_count'] > 1:
-        print(url)  # debugging
+        # print(url)  # debugging
         raise RuntimeError('mutiple %s PRs for %s' % (project, sha))
     item = data['items'][0]
     return item['number']
