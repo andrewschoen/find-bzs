@@ -10,16 +10,13 @@ import sys
 from bugzilla import Bugzilla
 from textwrap import TextWrapper, dedent
 import time
+import argparse
+import sys
 
 """
 Find Bugzilla numbers that correlate to new upstream tags in GitHub.
 """
 
-# These are ceph-ansible tags to compare:
-# TODO: auto-determine "OLD" from ceph-3.0-rhel-7-candidate
-# TODO: auto-determine "NEW" from git-decribe
-OLD = 'v4.0.10'
-NEW = 'v4.0.11'
 
 GITHUBURL = 'https://github.com/'
 GITHUBAPI = 'https://api.github.com/'
@@ -29,8 +26,7 @@ CACHEDIR = os.path.expanduser('~/.cache/find-bzs')
 rate_limit = None
 
 # Only query BZs in this product:
-PRODUCT = 'Red Hat Ceph Storage'
-
+PRODUCT = 'Red Hat OpenShift Container Storage'
 
 class GitHubProjectError(Exception):
     """ Error determining the GitHub project """
@@ -66,6 +62,7 @@ def github_project(remote):
         return project[:-4]
     if project.endswith('/'):
         return project[:-1]
+    print("github project found {}".format(project))
     return project
 
 
@@ -146,7 +143,7 @@ def find_by_external_tracker(bzapi, project, pr_id):
         'v3': 'CLOSED',
     }
     result = bzapi._proxy.Bug.search(payload)
-    return set([int(bz['id']) for bz in result['bugs']])
+    return result["bugs"]
 
 
 def rpm_version(ref):
@@ -317,13 +314,15 @@ def find_all_bzs(bzapi, project, old, new):
     """
     Return all the BZ ID numbers that correspond to PRs between "old" and
     "new" Git refs for this GitHub project. """
-    result = set()
+    result = list()
     all_prs = find_all_prs(old, new, project)
-    print('Searching Bugzilla for %d pull requests' % len(all_prs))
     for pr_id in all_prs:
         # print('searching for ceph-ansible PR %d' % pr_id)
-        pr_bzs = find_by_external_tracker(bzapi, project, pr_id)
-        result = result | pr_bzs
+        bzs = find_by_external_tracker(bzapi, project, pr_id)
+        if bzs and isinstance(bzs, list):
+            # this assumes there is only on BZ per pr, which might not be right
+            # it's easier to work with a list of dicts here instead of a list of lists
+            result.append(bzs[0])
     return result
 
 
@@ -357,7 +356,7 @@ def rpm_changelog(version, all_bzs):
 
 def query_link(all_bzs):
     """ Return a query URL for all BZs, so the maintainer can visit them. """
-    idstr = ','.join([str(bz) for bz in all_bzs])
+    idstr = ','.join([str(bz["id"]) for bz in all_bzs if bz])
     return 'https://bugzilla.redhat.com/buglist.cgi?bug_id=%s' % idstr
 
 
@@ -406,28 +405,50 @@ def bugzilla_command(version, all_bzs):
         deb_ver=deb_ver,
         bzs=bzs)
 
-
-bzapi = get_bzapi()
-project = find_github_project()
-all_bzs = find_all_bzs(bzapi, project, OLD, NEW)
+def help():
+    return "TODO: write help message"
 
 
-print('================')
-print(rpm_changelog(NEW, all_bzs))
-
-if 'rc' not in NEW and 'beta' not in NEW:
-    print('Command for RHEL dist-git:')
+def main():
+    parser = argparse.ArgumentParser(
+        prog='find-bzs',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=help(),
+    )
+    parser.add_argument(
+        '--new',
+        default='',
+        help='The new commit or tag.',
+    )
+    parser.add_argument(
+        '--old',
+        default='',
+        help='The old commit or tag.',
+    )
+    args = parser.parse_args()
+    bzapi = get_bzapi()
+    project = find_github_project()
+    all_bzs = find_all_bzs(bzapi, project, args.old, args.new)
     print('================')
-    print(rdopkg_command(NEW, all_bzs))
+    print("Found {} bzs for {}".format(
+        len(all_bzs),
+        project
+    ))
 
-print('================')
-print('Command for Ubuntu dist-git:')
-print(rhcephpkg_command(all_bzs))
+    print('')
+    print('================')
+    print('Query for browsing:')
+    print(query_link(all_bzs))
 
-print('================')
-print('Query for browsing:')
-print(query_link(all_bzs))
+    print('')
+    print('================')
+    print('Bugzilla List:')
+    for bz in all_bzs:
+        print("BZ{}: {} - {}".format(
+            bz["id"],
+            bz["summary"],
+            bz["status"],
+        ))
 
-print('================')
-print('When RHEL and Ubuntu dist-git are committed:')
-print(bugzilla_command(NEW, all_bzs))
+if __name__ == "__main__":
+    main()
