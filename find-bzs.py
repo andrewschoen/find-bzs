@@ -429,26 +429,27 @@ def main():
     bzapi = get_bzapi()
     project = find_github_project()
     all_bzs = find_all_bzs(bzapi, project, args.old, args.new)
-    print('================')
-    print("Found {} bzs for {}".format(
-        len(all_bzs),
-        project
-    ))
-
-    print('')
-    print('================')
-    print('Query for browsing:')
-    print(query_link(all_bzs))
-
-    print('')
-    print('================')
-    print('Bugzilla List:')
-    for bz in all_bzs:
-        print("BZ{}: {} - {}".format(
-            bz["id"],
-            bz["summary"],
-            bz["status"],
+    if all_bzs:
+        print('================')
+        print("Found {} bzs for {}".format(
+            len(all_bzs),
+            project
         ))
+
+        print('')
+        print('================')
+        print('Query for browsing:')
+        print(query_link(all_bzs))
+
+        print('')
+        print('================')
+        print('Bugzilla List:')
+        for bz in all_bzs:
+            print("BZ{}: {} - {}".format(
+                bz["id"],
+                bz["summary"],
+                bz["status"],
+            ))
 
 if __name__ == "__main__":
     main()
