@@ -62,7 +62,6 @@ def github_project(remote):
         return project[:-4]
     if project.endswith('/'):
         return project[:-1]
-    print("github project found {}".format(project))
     return project
 
 
@@ -429,18 +428,17 @@ def main():
     bzapi = get_bzapi()
     project = find_github_project()
     all_bzs = find_all_bzs(bzapi, project, args.old, args.new)
+    print('================')
+    print("Found {} bz(s) for {}".format(
+        len(all_bzs),
+        project
+    ))
+    print("commit range: {}..{}".format(
+        args.old,
+        args.new,
+    ))
+
     if all_bzs:
-        print('================')
-        print("Found {} bzs for {}".format(
-            len(all_bzs),
-            project
-        ))
-        print("commit range: {}..{}".format(
-            args.old,
-            args.new,
-        ))
-
-
         print('')
         print('================')
         print('Query for browsing:')
