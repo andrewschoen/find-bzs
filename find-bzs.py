@@ -435,6 +435,11 @@ def main():
             len(all_bzs),
             project
         ))
+        print("commit range: {}..{}".format(
+            args.old,
+            args.new,
+        ))
+
 
         print('')
         print('================')
