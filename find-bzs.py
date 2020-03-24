@@ -424,10 +424,32 @@ def main():
         default='',
         help='The old commit or tag.',
     )
+    parser.add_argument(
+        '--json-file',
+        default='',
+        help='A path to a file that can be used to store bz info in json format',
+    )
     args = parser.parse_args()
     bzapi = get_bzapi()
     project = find_github_project()
     all_bzs = find_all_bzs(bzapi, project, args.old, args.new)
+    if args.json_file:
+        bz_json = dict()
+        # if the file doesn't exist, create it as an empty json dictionary
+        if not os.path.exists(args.json_file):
+            with open(args.json_file, "w") as f:
+                json.dump(bz_json, f)
+
+        # load existing file so we can append to this for multiple projects
+        with open(args.json_file) as f:
+            bz_json = json.load(f)
+
+        if all_bzs:
+            bz_json[project.split("/")[1]] = all_bzs
+
+        with open(args.json_file, "w") as f:
+            json.dump(bz_json, f)
+
     print('================')
     print("Found {} bz(s) for {}".format(
         len(all_bzs),
