@@ -445,7 +445,12 @@ def main():
             bz_json = json.load(f)
 
         if all_bzs:
-            bz_json[project.split("/")[1]] = all_bzs
+            bz_json[project.split("/")[1]] = dict(
+                bzs=all_bzs,
+                query_link=query_link(all_bzs),
+                new_commit=args.new,
+                old_commit=args.old,
+            )
 
         with open(args.json_file, "w") as f:
             json.dump(bz_json, f)
