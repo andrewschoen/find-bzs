@@ -433,6 +433,14 @@ def main():
     bzapi = get_bzapi()
     project = find_github_project()
     all_bzs = find_all_bzs(bzapi, project, args.old, args.new)
+    bz_ids = []
+    filtered_bzs = []
+    # dedupe all_bzs list
+    for bz in all_bzs:
+        if bz["id"] not in bz_ids:
+            filtered_bzs.append(bz)
+            bz_ids.append(bz["id"])
+
     if args.json_file:
         bz_json = dict()
         # if the file doesn't exist, create it as an empty json dictionary
@@ -444,10 +452,10 @@ def main():
         with open(args.json_file) as f:
             bz_json = json.load(f)
 
-        if all_bzs:
+        if filtered_bzs:
             bz_json[project.split("/")[1]] = dict(
-                bzs=all_bzs,
-                query_link=query_link(all_bzs),
+                bzs=filtered_bzs,
+                query_link=query_link(filtered_bzs),
                 new_commit=args.new,
                 old_commit=args.old,
             )
@@ -457,7 +465,7 @@ def main():
 
     print('================')
     print("Found {} bz(s) for {}".format(
-        len(all_bzs),
+        len(filtered_bzs),
         project
     ))
     print("commit range: {}..{}".format(
@@ -469,12 +477,12 @@ def main():
         print('')
         print('================')
         print('Query for browsing:')
-        print(query_link(all_bzs))
+        print(query_link(filtered_bzs))
 
         print('')
         print('================')
         print('Bugzilla List:')
-        for bz in all_bzs:
+        for bz in filtered_bzs:
             print("BZ{}: {} - {}".format(
                 bz["id"],
                 bz["summary"],
